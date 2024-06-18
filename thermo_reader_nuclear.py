@@ -43,8 +43,14 @@ while True:
             cv2.rectangle(regular_frame, (x + nx, y + ny), (x + nx + nw, y + ny + nh), (0, 255, 0), 2)
             cv2.circle(regular_frame, (nose_center_x, nose_center_y), 5, (0, 0, 255), -1)
 
+            # Ensure thermal_frame is in single-channel (grayscale)
+            if len(thermal_frame.shape) == 3 and thermal_frame.shape[2] == 3:
+                thermal_frame_gray = cv2.cvtColor(thermal_frame, cv2.COLOR_BGR2GRAY)
+            else:
+                thermal_frame_gray = thermal_frame
+
             # if both cameras are on the same plane
-            nose_temperature_pixel_value = thermal_frame[nose_center_y, nose_center_x]
+            nose_temperature_pixel_value = thermal_frame_gray[nose_center_y, nose_center_x]
             nose_temperature = pixel_to_temperature(nose_temperature_pixel_value)
             print('Temperature at nose:', nose_temperature)
 
