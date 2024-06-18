@@ -1,5 +1,7 @@
 import cv2
 import numpy as np
+import pytesseract
+import re
 
 # face and nose detection xml
 face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
@@ -9,10 +11,41 @@ nose_cascade = cv2.CascadeClassifier('haarcascade_mcs_nose.xml')
 regular_cam = cv2.VideoCapture(0)  # Regular camera
 thermal_cam = cv2.VideoCapture(1)  # Thermal camera
 
-# Function to convert pixel value to temperature
+def min_and_max(frame_image): 
+    # Ensure Tesseract's executable is in your PATH or provide the path directly
+    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+    # Load the image
+    image = cv2.imread(frame_image)
+    # Convert to grayscale
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # Apply thresholding to preprocess the image
+    _, binary_image = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY_INV)
+    # Optional: Apply dilation to connect text regions
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 1))
+    dilated = cv2.dilate(binary_image, kernel, iterations=1)
+
+    try:
+        # Use Tesseract to extract text
+        custom_config = r'--oem 3 --psm 6'
+        text = pytesseract.image_to_string(dilated, config=custom_config)
+        # Define patterns for "max" and "min" with associated numbers
+        max_pattern = r'\bMax\b\D*(\d+(\.\d+)?)'
+        min_pattern = r'\bMin\b\D*(\d+(\.\d+)?)'
+        # Find all occurrences of patterns in the text
+        max_results = re.findall(max_pattern, text, flags=re.IGNORECASE)
+        min_results = re.findall(min_pattern, text, flags=re.IGNORECASE)
+        # Extract max and min values
+        max_value = float(max_results[0][0]) if max_results else None
+        min_value = float(min_results[0][0]) if min_results else None
+        return max_value, min_value 
+    
+    except Exception as e:
+        print(f"Error: An exception occurred during OCR: {e}")
+        return None, None
+    
+# Function to convert pixel value to temperature (temperature is in celcius) 
 def pixel_to_temperature(pixel_value, min_temp=20, max_temp=100):
     return min_temp + (pixel_value / 255) * (max_temp - min_temp)
-
 
 while True:
     # Capture frame-by-frame from both cameras
@@ -23,10 +56,14 @@ while True:
     if not ret1 or not ret2:
         print("Failed to grab frames")
         break
+    
+    max_temp, min_temp = min_and_max(thermal_frame)
+    if max_temp is None or min_temp is None:
+        print("Failed to extract temperature range")
+        continue
 
     # Convert the regular frame to grayscale
     gray_frame = cv2.cvtColor(regular_frame, cv2.COLOR_BGR2GRAY)
-
     # Detect faces in the grayscale frame
     faces = face_cascade.detectMultiScale(gray_frame, 1.3, 5)
 
@@ -52,7 +89,7 @@ while True:
 
             # if both cameras are on the same plane
             nose_temperature_pixel_value = thermal_frame_gray[nose_center_y, nose_center_x]
-            nose_temperature = pixel_to_temperature(nose_temperature_pixel_value)
+            nose_temperature = pixel_to_temperature(nose_temperature_pixel_value, min_temp=min_temp, max_temp=max_temp)
             print('Temperature at nose:', nose_temperature)
 
             # Display the temperature on the regular frame
