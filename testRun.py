@@ -380,6 +380,9 @@ def liveTestCap():
         if not ret or not t_ret:
             break
 
+        # Apply cartoonization to regular video frame
+        cartoon_img = cartoonize_image(t_img)
+
         # Convert the thermal image to grayscale before processing
         gray_t_img = cv2.cvtColor(t_img, cv2.COLOR_BGR2GRAY)
         t_img_normalized = convert_thermal_to_normal(gray_t_img)
@@ -387,13 +390,14 @@ def liveTestCap():
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         nose = noseCascade.detectMultiScale(gray, 1.3, 5)
 
-        # Draw a rectangle around the nose
+        # Draw a rectangle around the nose on the thermal image
         for (x, y, w, h) in nose:
             cv2.rectangle(t_img_normalized, (x, y), (x + w, y + h), (0, 255, 0), 2)
             cv2.putText(t_img_normalized, "Nose", (x, y + h + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
 
-        cv2.imshow("t_vid", t_img_normalized)
-        cv2.imshow("vid", img)
+        # Display both the cartoonized regular video and the thermal image
+        cv2.imshow("t_vid", img)
+        cv2.imshow("vid", cartoon_img)
 
         x = cv2.waitKey(10)  # if 0 will be a still frame
         ch = chr(x & 0xFF)  # bitwise and that removes all bits above 255
@@ -409,10 +413,29 @@ def convert_thermal_to_normal(img):
     # Normalize the thermal image data to 8-bit grayscale
     normalized_img = cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
     
-    # Convert grayscale image to BGR
-    bgr_img = cv2.cvtColor(normalized_img, cv2.COLORMAP_TURBO)
+    # Convert grayscale image to BGR using Winter colormap for thermal effect
+    bgr_img = cv2.applyColorMap(normalized_img, cv2.COLORMAP_WINTER)
     
     return bgr_img
+
+def cartoonize_image(img):
+    # Convert to grayscale
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    
+    # Apply bilateral filter to reduce noise while keeping edges sharp
+    gray_smooth = cv2.bilateralFilter(gray, 9, 75, 75)
+    
+    # Apply median blur to further smooth image
+    gray_blur = cv2.medianBlur(gray_smooth, 5)
+    
+    # Detect edges using adaptive thresholding
+    edges = cv2.adaptiveThreshold(gray_blur, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 9, 2)
+    
+    # Create a color image by combining the edges with a smoothed version of the original image
+    color = cv2.bilateralFilter(img, 9, 300, 300)
+    cartoon_img = cv2.bitwise_and(color, color, mask=edges)
+    
+    return cartoon_img
 
 
 # def translation():
