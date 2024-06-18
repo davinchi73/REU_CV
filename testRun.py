@@ -368,6 +368,53 @@ def faceBlink():
     regVid.release()
 
 
+def liveTestCap():
+    noseCascade = cv2.CascadeClassifier("haarcascade_mcs_nose.xml")
+
+    regVid = cv2.VideoCapture(1)
+
+    while True:
+        ret, img = regVid.read()
+        t_ret, t_img = regVid.read()
+
+        if not ret or not t_ret:
+            break
+
+        # Convert the thermal image to grayscale before processing
+        gray_t_img = cv2.cvtColor(t_img, cv2.COLOR_BGR2GRAY)
+        t_img_normalized = convert_thermal_to_normal(gray_t_img)
+
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        nose = noseCascade.detectMultiScale(gray, 1.3, 5)
+
+        # Draw a rectangle around the nose
+        for (x, y, w, h) in nose:
+            cv2.rectangle(t_img_normalized, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            cv2.putText(t_img_normalized, "Nose", (x, y + h + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+
+        cv2.imshow("t_vid", t_img_normalized)
+        cv2.imshow("vid", img)
+
+        x = cv2.waitKey(10)  # if 0 will be a still frame
+        ch = chr(x & 0xFF)  # bitwise and that removes all bits above 255
+
+        if ch == "q":
+            break
+
+    # break and destroy
+    cv2.destroyAllWindows()
+    regVid.release()
+
+def convert_thermal_to_normal(img):
+    # Normalize the thermal image data to 8-bit grayscale
+    normalized_img = cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+    
+    # Convert grayscale image to BGR
+    bgr_img = cv2.cvtColor(normalized_img, cv2.COLORMAP_TURBO)
+    
+    return bgr_img
+
+
 # def translation():
 #     img = cv2.imread("SampleImages/snowLeo2.jpg")
 #     (rows, cols, dep) = img.shape
@@ -417,4 +464,5 @@ if __name__ == '__main__':
     # liveCap()
     # movementDetect()
     # facePics()
-    faceBlink()
+    # faceBlink()
+    liveTestCap()
