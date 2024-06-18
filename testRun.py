@@ -1,4 +1,4 @@
-# import os
+import os
 
 import cv2
 
@@ -8,81 +8,7 @@ import sys
 
 import numpy as np
 
-# import random
-
-
-# def randomcode1():
-#     image = cv2.imread("SampleImages/antiqueTractors.jpg")
-#     (bc, gc, rc) = cv2.split(image)
-
-#     # each channel is shown as grayscale, because it only has value per pixel
-#     cv2.imshow("Blue channel", bc)
-#     cv2.imshow("Green channel", gc)
-#     cv2.imshow("Red channel", rc)
-#     cv2.moveWindow("Blue channel", 30, 30)
-#     cv2.moveWindow("Green channel", 330, 60)
-#     cv2.moveWindow("Red channel", 630, 90)
-#     cv2.waitKey(0)
-
-#     # Put image back together again
-#     imCopy = cv2.merge((bc, gc, rc))
-#     cv2.imshow("Image Copy", imCopy)
-#     cv2.waitKey(0)
-
-
-# def numpyRunner():
-#     origImage = cv2.imread("SampleImages/snowLeo4.jpg")
-#     gray = cv2.cvtColor(origImage, cv2.COLOR_BGR2GRAY)
-#     cv2.imshow("Gray image", gray)
-
-#     blankImg1 = np.zeros((400, 250), np.uint8)
-#     cv2.imshow("Black background image", blankImg1)
-
-#     blankImg2 = 255 * np.ones((300, 300), np.uint8)
-#     cv2.imshow("White background image", blankImg2)
-
-#     cv2.waitKey(0)
-#     cv2.destroyAllWindows()
-
-
-# def slideshow():
-#     for file in os.listdir("SampleImages"):
-#         if file.lower().endswith(('.jpg', '.png', '.jpeg')):
-#             path = os.path.join("SampleImages", file)
-#             img = cv2.imread(path)
-
-#             # Display the image
-#             cv2.imshow(file, img)
-
-#             # Wait for a key press
-#             cv2.waitKey(0)
-
-#         # Close all OpenCV windows
-#         cv2.destroyAllWindows()
-
-
-# def blendr():
-#     mushroom = cv2.imread("SampleImages/mushrooms.jpg")
-#     chicago = cv2.imread("SampleImages/chicago.jpg")
-
-#     minWidth = min(mushroom.shape[0], chicago.shape[0])
-#     minHeight = min(mushroom.shape[1], chicago.shape[1])
-
-#     mushroomCrop = mushroom[:minWidth, :minHeight]
-#     chicagoCrop = chicago[:minWidth, :minHeight]
-
-#     wgt = 1.0
-
-#     for x in range(0, 50):
-
-#         blended = cv2.addWeighted(mushroomCrop, wgt, chicagoCrop, (1-wgt), 0)
-#         cv2.imshow("", blended)
-#         # time.sleep(0.01)
-#         cv2.waitKey(0)
-#         wgt -= 0.08
-
-#     cv2.destroyAllWindows()
-
+#------------
 
 def videoCap():
 
@@ -368,119 +294,74 @@ def faceBlink():
     regVid.release()
 
 
-def liveTestCap():
-    noseCascade = cv2.CascadeClassifier("haarcascade_mcs_nose.xml")
 
-    regVid = cv2.VideoCapture(1)
+def liveTestCap():
+    faceCascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
+    thermalVid = cv2.VideoCapture(1)  # Assuming thermal camera is at index 1
+
+    frame_count = 0
+    avg_bgr = None
+    buffer_size = 10
+    color_buffer = []
 
     while True:
-        ret, img = regVid.read()
-        t_ret, t_img = regVid.read()
+        ret, img = thermalVid.read()
 
-        if not ret or not t_ret:
+        if not ret:
             break
 
-        # Apply cartoonization to regular video frame
-        cartoon_img = cartoonize_image(t_img)
-
-        # Convert the thermal image to grayscale before processing
-        gray_t_img = cv2.cvtColor(t_img, cv2.COLOR_BGR2GRAY)
-        t_img_normalized = convert_thermal_to_normal(gray_t_img)
-
+        # Convert image to grayscale for detection
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        nose = noseCascade.detectMultiScale(gray, 1.3, 5)
 
-        # Draw a rectangle around the nose on the thermal image
-        for (x, y, w, h) in nose:
-            cv2.rectangle(t_img_normalized, (x, y), (x + w, y + h), (0, 255, 0), 2)
-            cv2.putText(t_img_normalized, "Nose", (x, y + h + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+        # Detect faces in the image
+        faces = faceCascade.detectMultiScale(gray, scaleFactor=1.3, minNeighbors=5, minSize=(30, 30))
 
-        # Display both the cartoonized regular video and the thermal image
-        cv2.imshow("t_vid", img)
-        cv2.imshow("vid", cartoon_img)
+        for (x, y, w, h) in faces:
+            # Draw rectangle around the face
+            cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), 2)
+            cv2.putText(img, "Face", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
 
-        x = cv2.waitKey(10)  # if 0 will be a still frame
-        ch = chr(x & 0xFF)  # bitwise and that removes all bits above 255
+            # Approximate the area for breathing (mouth/nose region)
+            # Example: You can draw a rectangle slightly below the midpoint of the face box
+            # Adjust these coordinates based on where you think the mouth/nose region is
+            breathing_area_top_left = (x + int(w * 0.35), y + int(h * 0.6) - 40)
+            breathing_area_bottom_right = (x + int(w * 0.65), (y + h) - 40)
+            cv2.rectangle(img, breathing_area_top_left, breathing_area_bottom_right, (0, 255, 0), 2)
+            cv2.putText(img, "Breathing Area", (x + int(w * 0.25), y + int(h * 0.6) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
-        if ch == "q":
+        
+            # Extract pixels from breathing area box
+            breathing_area = img[breathing_area_top_left[1]:breathing_area_bottom_right[1],
+                                 breathing_area_top_left[0]:breathing_area_bottom_right[0]]
+
+            # Calculate average BGR color every 10 frames
+            if frame_count % buffer_size == 0:
+                color_buffer.append(np.mean(breathing_area, axis=(0, 1)))
+                if len(color_buffer) > buffer_size:
+                    color_buffer.pop(0)
+                avg_bgr = np.mean(color_buffer, axis=0).astype(int)
+
+            # Display average BGR color on the image
+            if avg_bgr is not None:
+                cv2.putText(img, f"Avg BGR: {avg_bgr}", (x, y - 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
+
+        # Display the result
+        cv2.imshow("Thermal Camera with Detection", img)
+
+        # Exit on 'q' key press
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord("q"):
             break
 
-    # break and destroy
+        # Increment frame count
+        frame_count += 1
+
+    # Clean up
     cv2.destroyAllWindows()
-    regVid.release()
-
-def convert_thermal_to_normal(img):
-    # Normalize the thermal image data to 8-bit grayscale
-    normalized_img = cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-    
-    # Convert grayscale image to BGR using Winter colormap for thermal effect
-    bgr_img = cv2.applyColorMap(normalized_img, cv2.COLORMAP_WINTER)
-    
-    return bgr_img
-
-def cartoonize_image(img):
-    # Convert to grayscale
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    
-    # Apply bilateral filter to reduce noise while keeping edges sharp
-    gray_smooth = cv2.bilateralFilter(gray, 9, 75, 75)
-    
-    # Apply median blur to further smooth image
-    gray_blur = cv2.medianBlur(gray_smooth, 5)
-    
-    # Detect edges using adaptive thresholding
-    edges = cv2.adaptiveThreshold(gray_blur, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 9, 2)
-    
-    # Create a color image by combining the edges with a smoothed version of the original image
-    color = cv2.bilateralFilter(img, 9, 300, 300)
-    cartoon_img = cv2.bitwise_and(color, color, mask=edges)
-    
-    return cartoon_img
+    thermalVid.release()
 
 
-# def translation():
-#     img = cv2.imread("SampleImages/snowLeo2.jpg")
-#     (rows, cols, dep) = img.shape
-#     cv2.imshow("Original", img)
-#     transMatrix = np.float32([[1, 0, 30], [0, 1, 50]])  # change 30 and 50
-#     transImag = cv2.warpAffine(img, transMatrix, (cols, rows))
-#     cv2.imshow("Translated", transImag)
-
-#     cv2.waitKey(0)
-#     cv2.destroyAllWindows()
-
-
-# def rotation():
-#     img = cv2.imread("SampleImages/snowLeo2.jpg")
-#     cv2.imshow("Original", img)
-#     (rows, cols, depth) = img.shape
-#     rotMat = cv2.getRotationMatrix2D((cols / 2, rows / 2), 45, 1)
-#     rotImg = cv2.warpAffine(img, rotMat, (cols, rows))
-#     cv2.imshow("Rotated", rotImg)
-#     cv2.waitKey(0)
-#     cv2.destroyAllWindows()
-
-
-# def jitter():
-#     img = cv2.imread("SampleImages/snowLeo2.jpg")
-#     (rows, cols, dep) = img.shape
-#     cv2.imshow("Original", img)
-
-#     while True:
-#         # Generate random offsets in x and y directions
-#         random_offset_x = random.randint(-100, 100)
-#         random_offset_y = random.randint(-100, 100)
-
-#         transMatrix = np.float32([[1, 0, random_offset_x], [0, 1, random_offset_y]])  # Random offsets
-#         transImag = cv2.warpAffine(img, transMatrix, (cols, rows))
-#         cv2.imshow("Translated", transImag)
-
-#         key = cv2.waitKey(50)  # Adjust the wait time as needed
-#         if key != -1:  # Any key pressed breaks the loop
-#             break
-
-#     cv2.destroyAllWindows()
-
+#-----
 
 if __name__ == '__main__':
     # videoCap()
