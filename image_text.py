@@ -41,7 +41,7 @@ try:
             max_value = result[0]
             print(f"Max: {max_value}")
     else:
-        print("No max results found.")
+        print("No Max results found.")
 
     if min_results:
         print("Min results found:")
@@ -49,7 +49,7 @@ try:
             min_value = result[0]
             print(f"Min: {min_value}")
     else:
-        print("No min results found.")
+        print("No Min results found.")
 
 except Exception as e:
     print(f"Error: An exception occurred during OCR: {e}")
