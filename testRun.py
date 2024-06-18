@@ -291,6 +291,82 @@ def facePics():
     regVid.release()
 
 
+def faceBlink():
+    faceCascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
+    regVid = cv2.VideoCapture(0)
+
+    isBlinking = False
+    isRed = False
+    isGreen = True
+    frameCount = 0
+    
+    while True:
+
+        ret, img = regVid.read()
+
+        # check if ret false
+        if not ret:
+            break
+            
+        # gray scale and nose detection setup
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        face = faceCascade.detectMultiScale(gray, 1.3, 5)
+
+
+        for (x, y, w, h) in face:
+            if not isBlinking:
+                cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 2)
+                cv2.putText(img, "Face", (x, y + h + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+            elif isBlinking:
+                if frameCount > 5:
+                    if isRed:
+                        cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 2)
+                        cv2.putText(img, "Face", (x, y + h + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+                        isRed = False
+                        isGreen = True
+                        frameCount = 0 
+                    else:
+                        cv2.rectangle(img, (x, y), (x+w, y+h), (0, 0, 255), 2)
+                        cv2.putText(img, "Face", (x, y + h + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+                        isRed = True
+                        isGreen = False
+                        frameCount = 0
+                else:
+                    if isRed:
+                        cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 2)
+                        cv2.putText(img, "Face", (x, y + h + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+                    elif isGreen:
+                        cv2.rectangle(img, (x, y), (x+w, y+h), (0, 0, 255), 2)
+                        cv2.putText(img, "Face", (x, y + h + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+
+
+        cv2.imshow("vid", img)
+
+        x = cv2.waitKey(10) # if 0 will be a still frame
+        ch = chr(x & 0xFF)  # bitwise and that removes all bits above 255
+
+        if ch == "q":
+            break
+        elif ch == "p":
+            if not isBlinking:
+                cv2.rectangle(img, (x, y), (x+w, y+h), (0, 0, 255), 2)
+                isRed = True
+                isGreen = False
+                isBlinking = True
+            elif isBlinking:
+                cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 2)
+                isBlinking = False
+                isRed = False
+                isGreen = True
+                isBlinking = False
+
+        if isBlinking:
+            frameCount += 1
+
+    # break and destroy
+    cv2.destroyAllWindows()
+    regVid.release()
+
 
 # def translation():
 #     img = cv2.imread("SampleImages/snowLeo2.jpg")
@@ -340,4 +416,5 @@ if __name__ == '__main__':
     # videoCap()
     # liveCap()
     # movementDetect()
-    facePics()
+    # facePics()
+    faceBlink()
