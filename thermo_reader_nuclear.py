@@ -2,8 +2,8 @@ import cv2
 import numpy as np
 
 # face and nose detection xml
-face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-nose_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_mcs_nose.xml')
+face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+nose_cascade = cv2.CascadeClassifier('haarcascade_mcs_nose.xml')
 
 # video for both cameras
 regular_cam = cv2.VideoCapture(0)  # Regular camera
@@ -32,7 +32,7 @@ while True:
    #for coordinates in the faces detected
     for (x, y, w, h) in faces:
         # Draw rectangle around the face in the regular frame
-        cv2.rectangle(regular_frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+        # cv2.rectangle(regular_frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
         roi_gray = gray_frame[y:y + h, x:x + w]
 
         # Detect nose within the face ROI
@@ -46,11 +46,12 @@ while True:
             # if both cameras are on the same plane
             nose_temperature_pixel_value = thermal_frame[nose_center_y, nose_center_x]
             nose_temperature = pixel_to_temperature(nose_temperature_pixel_value)
-            print(f'Temperature at nose: {nose_temperature:.2f} °C')
+            print('Temperature at nose:', nose_temperature)
 
             # Display the temperature on the regular frame
-            cv2.putText(regular_frame, f'{nose_temperature:.2f} °C', (nose_center_x, nose_center_y - 10),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+            # cv2.putText(regular_frame, f'{nose_temperature:.2f} °C', (nose_center_x, nose_center_y - 10),
+            #             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+            cv2.putText(regular_frame, "face", (x, y + h + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
 
     # show the frames of the cameras
     cv2.imshow('Regular Camera', regular_frame)
