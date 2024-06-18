@@ -3,7 +3,7 @@ import pytesseract
 import re
 
 # Ensure Tesseract's executable is in your PATH or provide the path directly
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract'
 # Load the image
 image_path = "thermal for meggie.png"
 image = cv2.imread(image_path)
