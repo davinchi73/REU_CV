@@ -13,6 +13,7 @@ thermal_cam = cv2.VideoCapture(1)  # Thermal camera
 def pixel_to_temperature(pixel_value, min_temp=20, max_temp=100):
     return min_temp + (pixel_value / 255) * (max_temp - min_temp)
 
+
 while True:
     # Capture frame-by-frame from both cameras
     ret1, regular_frame = regular_cam.read()
