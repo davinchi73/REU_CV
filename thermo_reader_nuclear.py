@@ -3,6 +3,7 @@ import numpy as np
 import pytesseract
 import re
 
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR'
 # face and nose detection xml
 face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 nose_cascade = cv2.CascadeClassifier('haarcascade_mcs_nose.xml')
@@ -11,11 +12,7 @@ nose_cascade = cv2.CascadeClassifier('haarcascade_mcs_nose.xml')
 regular_cam = cv2.VideoCapture(0)  # Regular camera
 thermal_cam = cv2.VideoCapture(1)  # Thermal camera
 
-def min_and_max(frame_image): 
-    # Ensure Tesseract's executable is in your PATH or provide the path directly
-    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-    # Load the image
-    image = cv2.imread(frame_image)
+def min_and_max(image): 
     # Convert to grayscale
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     # Apply thresholding to preprocess the image
