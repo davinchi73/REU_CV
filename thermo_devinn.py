@@ -102,5 +102,64 @@ def min_and_max(image):
         return None, None
 
 
+def liveTestCapStatic():
+    
+    # load face cascade and thermal camera live footage
+    faceCascade = cv2.CascadeClassifier("haarcascade_frontalface_alt2.xml")
+    thermalVid = cv2.VideoCapture(0) # adjust value if needed
+
+    # create variables for temp detection later
+    frame_count = 0
+    avg_bgr = None
+    buffer_size = 90
+    color_buffer = []
+
+    # while true, read thermal cam footage
+    while True:
+        frame_count += 1
+        ret, img = thermalVid.read()
+
+        if not ret:
+            print("Failed to grab frames")
+            break
+
+        gray_frame = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        faces = faceCascade.detectMultiScale(gray_frame, scaleFactor=1.3, minNeighbors=5, minSize=(30, 30))
+
+        for (x, y, w, h) in faces:
+            cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), 2)
+            cv2.putText(img, "Face", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+
+            breathing_area_top_left = (x + int(w * 0.35), y + int(h * 0.6) - 40)
+            breathing_area_bottom_right = (x + int(w * 0.65), (y + h) - 40)
+            cv2.rectangle(img, breathing_area_top_left, breathing_area_bottom_right, (0, 255, 0), 2)
+            cv2.putText(img, "Breathing Area", (x + int(w * 0.25), y + int(h * 0.6) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+            breathing_area = img[breathing_area_top_left[1]:breathing_area_bottom_right[1],
+                                        breathing_area_top_left[0]:breathing_area_bottom_right[0]]
+
+            if frame_count % buffer_size == 0:
+                color_buffer.append(np.mean(breathing_area, axis=(0, 1)))
+                if len(color_buffer) > buffer_size:
+                    color_buffer.pop(0)
+                avg_bgr = np.mean(color_buffer, axis=0).astype(int)
+
+                if avg_bgr is not None:
+                    avg_pixel_value = np.mean(avg_bgr)
+                    nose_temperature = pixel_to_temperature(avg_pixel_value, min_temp=16.0, max_temp=35.0)
+                    print('Temperature at nose:', nose_temperature)
+                    cv2.putText(img, f'{nose_temperature:.2f} °C', (x, y - 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
+
+        cv2.imshow('Thermal Camera with Detection', img)
+
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord("q"):
+            break
+
+    # img.release()
+    cv2.destroyAllWindows()
+
+
 if __name__ == '__main__':
-    liveTestCapThermo()
+    # liveTestCapThermo() # dynamic temp sensor
+    liveTestCapStatic()
