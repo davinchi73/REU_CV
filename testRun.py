@@ -297,7 +297,7 @@ def faceBlink():
 
 def liveTestCap():
     faceCascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
-    thermalVid = cv2.VideoCapture(1)  # Assuming thermal camera is at index 1
+    thermalVid = cv2.VideoCapture(0)  # Assuming thermal camera is at index 1
 
     frame_count = 0
     avg_bgr = None
