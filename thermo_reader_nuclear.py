@@ -96,11 +96,18 @@ while True:
                 if max_temp is not None and min_temp is not None:
                     nose_temperature = pixel_to_temperature(nose_temperature_pixel_value, min_temp=min_temp, max_temp=max_temp)
                     print('Temperature at nose:', nose_temperature)
-                    last_temp = nose_temperature 
                     cv2.putText(regular_frame, f'{nose_temperature:.2f} °C', (nose_center_x, nose_center_y - 10),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
-
+            
+            print(abs(last_temp - nose_temperature))
+            #detecting if the change in temeperature is less than 0.4 celsius 
+            if abs(last_temp - nose_temperature) < 0.4: 
+                print("You are dying")
+            
+            last_temp = nose_temperature 
                 #cv2.putText(regular_frame, "face", (x, y + h + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+    else: 
+        continue 
 
     # show the frames of the cameras
     cv2.imshow('Regular Camera', regular_frame)
