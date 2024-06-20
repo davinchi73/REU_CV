@@ -12,7 +12,7 @@ nose_cascade = cv2.CascadeClassifier('haarcascade_mcs_nose.xml')
 regular_cam = cv2.VideoCapture(1)  # Regular camera
 thermal_cam = cv2.VideoCapture(0)  # Thermal camera
 
-frame_counter = 0 
+frame_counter = 0
 
 def min_and_max(image): 
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -49,33 +49,30 @@ def pixel_to_temperature(pixel_value, min_temp=20, max_temp=100):
     return min_temp + (pixel_value / 255) * (max_temp - min_temp)
 
 while True:
-    frame_counter += 1
-    if frame_counter % 10 == 0: 
-        # Capture frame-by-frame from both cameras
-        ret1, regular_frame = regular_cam.read()
-        ret2, thermal_frame = thermal_cam.read()
+    frame_counter +=1
+    # Capture frame-by-frame from both cameras
+    ret1, regular_frame = regular_cam.read()
+    ret2, thermal_frame = thermal_cam.read()
 
-        #make sure that ret1 and ret2 are reading properly
-        if not ret1 or not ret2:
-            print("Failed to grab frames")
-            break
-        
+    #make sure that ret1 and ret2 are reading properly
+    if not ret1 or not ret2:
+        print("Failed to grab frames")
+        break
+    
+    #only extract the temperature every 10 frames 
+    if frame_counter % 10 == 0: 
         max_temp, min_temp = min_and_max(thermal_frame)
         if max_temp is None or min_temp is None:
             print("Failed to extract temperature range")
             continue
 
-        # Convert the regular frame to grayscale
+        # Convert the regular frame to grayscale and detect faces 
         gray_frame = cv2.cvtColor(regular_frame, cv2.COLOR_BGR2GRAY)
-        # Detect faces in the grayscale frame
         faces = face_cascade.detectMultiScale(gray_frame, 1.3, 5)
 
     #for coordinates in the faces detected
         for (x, y, w, h) in faces:
-            # Draw rectangle around the face in the regular frame
-            # cv2.rectangle(regular_frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
             roi_gray = gray_frame[y:y + h, x:x + w]
-
             # Detect nose within the face ROI
             noses = nose_cascade.detectMultiScale(roi_gray, 1.3, 5)
             for (nx, ny, nw, nh) in noses:
@@ -90,17 +87,19 @@ while True:
                 else:
                     thermal_frame_gray = thermal_frame
 
-                # if both cameras are on the same plane
+                # assuming that both cameras are on the same plane
                 nose_temperature_pixel_value = thermal_frame_gray[nose_center_y, nose_center_x]
                 nose_temperature = pixel_to_temperature(nose_temperature_pixel_value, min_temp=min_temp, max_temp=max_temp)
-                print('Temperature at nose:', nose_temperature)
+                
+                #say the temperature at the nose if the max and min temperatures are not none 
+                if max_temp is not None and min_temp is not None:
+                    nose_temperature = pixel_to_temperature(nose_temperature_pixel_value, min_temp=min_temp, max_temp=max_temp)
+                    print('Temperature at nose:', nose_temperature)
+                    cv2.putText(regular_frame, f'{nose_temperature:.2f} °C', (nose_center_x, nose_center_y - 10),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
 
-                # Display the temperature on the regular frame
-                # cv2.putText(regular_frame, f'{nose_temperature:.2f} °C', (nose_center_x, nose_center_y - 10),
-                #             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
-                cv2.putText(regular_frame, "face", (x, y + h + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
-    else: 
-        continue 
+                #cv2.putText(regular_frame, "face", (x, y + h + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+
     # show the frames of the cameras
     cv2.imshow('Regular Camera', regular_frame)
     cv2.imshow('Thermal Camera', thermal_frame)
