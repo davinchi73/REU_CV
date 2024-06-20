@@ -13,6 +13,7 @@ regular_cam = cv2.VideoCapture(1)  # Regular camera
 thermal_cam = cv2.VideoCapture(0)  # Thermal camera
 
 frame_counter = 0
+last_temp = 0
 
 def min_and_max(image): 
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -95,6 +96,7 @@ while True:
                 if max_temp is not None and min_temp is not None:
                     nose_temperature = pixel_to_temperature(nose_temperature_pixel_value, min_temp=min_temp, max_temp=max_temp)
                     print('Temperature at nose:', nose_temperature)
+                    last_temp = nose_temperature 
                     cv2.putText(regular_frame, f'{nose_temperature:.2f} °C', (nose_center_x, nose_center_y - 10),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
 
