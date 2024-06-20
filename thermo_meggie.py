@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 import pytesseract
 import re
+import winsound  # Import the winsound module for playing alert sound
+
 
 # Initialize pytesseract
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
@@ -10,12 +12,18 @@ pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tessera
 faceCascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
 thermalVid = cv2.VideoCapture(0)  # Adjust value if needed
 
+def play_alert_sound():
+    winsound.Beep(1000, 500)  # Beep sound plays 
+
+
 def liveTestCapThermo():
     frame_count = 0
+    last_temp = 0
     avg_bgr = None
-    buffer_size = 10
+    buffer_size = 90 #check every 3 seconds 
     color_buffer = []
     last_face_box = None
+    alarm_on = False
 
     while True:
         ret, img = thermalVid.read()
@@ -64,7 +72,7 @@ def liveTestCapThermo():
                 print('Temperature at nose:', nose_temperature)
                 cv2.putText(img, f'{nose_temperature:.2f} °C', (x, y - 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
 
-        # If no faces detected, use last known face box if available
+        # If no faces detected, use last known face box if available to draw
         if last_face_box is not None:
             (x, y, w, h) = last_face_box
             cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), 2)
@@ -75,7 +83,17 @@ def liveTestCapThermo():
             breathing_area_bottom_right = (x + int(w * 0.65), y + h)
             cv2.rectangle(img, breathing_area_top_left, breathing_area_bottom_right, (0, 255, 0), 2)
             cv2.putText(img, "Breathing Area (Last Known)", (x + int(w * 0.25), y + int(h * 0.6) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        
+        if abs(last_temp - nose_temperature) < 0.4: 
+            print("Death detected!")
+            if not alarm_on:
+                play_alert_sound()  # Play alert sound
+                alarm_on = True
+            else:
+                alarm_on = False
 
+        last_temp = nose_temperature #set last_temp to be the recently detected nose temperature 
+        #show breathing area on screen 
         cv2.imshow('Thermal Camera with Detection', img)
 
         key = cv2.waitKey(1) & 0xFF
@@ -92,7 +110,7 @@ def pixel_to_temperature(pixel_value, min_temp, max_temp):
 # Function to extract min and max temperatures from image
 def min_and_max(image):
     # Define the ROI for the area where the min and max values are displayed
-    roi = image[0:150, 0:250]  # Adjust these values based on your specific camera feed
+    roi = image[0:150, 0:250] 
 
     # Convert ROI to grayscale
     gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
@@ -105,7 +123,7 @@ def min_and_max(image):
         min_pattern = r'\bMin\b\D*(\d+(\.\d+)?)'
         max_results = re.findall(max_pattern, text, flags=re.IGNORECASE)
         min_results = re.findall(min_pattern, text, flags=re.IGNORECASE)
-        print(f"Max Results: {max_results}, Min Results: {min_results}")
+        #print(f"Max Results: {max_results}, Min Results: {min_results}")
 
         max_value = float(max_results[0][0]) if max_results else None
         min_value = float(min_results[0][0]) if min_results else None

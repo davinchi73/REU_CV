@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 import pytesseract
 import re
+import winsound  # Import the winsound module for playing alert sound
+
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 # face and nose detection xml
@@ -14,6 +16,10 @@ thermal_cam = cv2.VideoCapture(0)  # Thermal camera
 
 frame_counter = 0
 last_temp = 0
+
+#alert sound function when breathing temperature does not change 
+def play_alert_sound():
+    winsound.Beep(1000, 500) 
 
 def min_and_max(image): 
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -49,8 +55,11 @@ def min_and_max(image):
 def pixel_to_temperature(pixel_value, min_temp=20, max_temp=100):
     return min_temp + (pixel_value / 255) * (max_temp - min_temp)
 
+#while there is an active video frame 
 while True:
     frame_counter +=1
+    last_nose_box = None
+    nose_temperature = None
     # Capture frame-by-frame from both cameras
     ret1, regular_frame = regular_cam.read()
     ret2, thermal_frame = thermal_cam.read()
@@ -61,11 +70,11 @@ while True:
         break
     
     #only extract the temperature every 10 frames 
-    if frame_counter % 10 == 0: 
-        max_temp, min_temp = min_and_max(thermal_frame)
-        if max_temp is None or min_temp is None:
-            print("Failed to extract temperature range")
-            continue
+    if frame_counter % 90 == 0: 
+        #max_temp, min_temp = min_and_max(thermal_frame)
+        #if max_temp is None or min_temp is None:
+            #print("Failed to extract temperature range")
+            #continue
 
         # Convert the regular frame to grayscale and detect faces 
         gray_frame = cv2.cvtColor(regular_frame, cv2.COLOR_BGR2GRAY)
@@ -77,6 +86,7 @@ while True:
             # Detect nose within the face ROI
             noses = nose_cascade.detectMultiScale(roi_gray, 1.3, 5)
             for (nx, ny, nw, nh) in noses:
+                last_nose_box = (nx, ny, nw, nh)
                 nose_center_x = x + nx + nw // 2
                 nose_center_y = y + ny + nh // 2
                 cv2.rectangle(regular_frame, (x + nx, y + ny), (x + nx + nw, y + ny + nh), (0, 255, 0), 2)
@@ -90,22 +100,33 @@ while True:
 
                 # assuming that both cameras are on the same plane
                 nose_temperature_pixel_value = thermal_frame_gray[nose_center_y, nose_center_x]
-                nose_temperature = pixel_to_temperature(nose_temperature_pixel_value, min_temp=min_temp, max_temp=max_temp)
-                
+                nose_temperature = pixel_to_temperature(nose_temperature_pixel_value, min_temp=17.2, max_temp=33.4)
+
                 #say the temperature at the nose if the max and min temperatures are not none 
-                if max_temp is not None and min_temp is not None:
-                    nose_temperature = pixel_to_temperature(nose_temperature_pixel_value, min_temp=min_temp, max_temp=max_temp)
-                    print('Temperature at nose:', nose_temperature)
-                    cv2.putText(regular_frame, f'{nose_temperature:.2f} °C', (nose_center_x, nose_center_y - 10),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
-            
-            print(abs(last_temp - nose_temperature))
-            #detecting if the change in temeperature is less than 0.4 celsius 
-            if abs(last_temp - nose_temperature) < 0.4: 
-                print("You are dying")
-            
-            last_temp = nose_temperature 
-                #cv2.putText(regular_frame, "face", (x, y + h + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1, cv2.LINE_AA)
+                nose_temperature = pixel_to_temperature(nose_temperature_pixel_value, min_temp=17.2, max_temp=33.4)
+                print('Temperature at nose:', nose_temperature)
+                cv2.putText(regular_frame, f'{nose_temperature:.2f} °C', (nose_center_x, nose_center_y - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+                
+        # If no faces detected, use last known face box if available to draw
+        if last_nose_box is not None:
+            (x, y, w, h) = last_nose_box
+            cv2.rectangle(thermal_frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+            cv2.rectangle(regular_frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+
+            cv2.putText(thermal_frame, "Nose (Last Known)", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+            cv2.putText(regular_frame, "Nose (Last Known)", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+
+        #detecting if the change in temeperature is less than 0.4 celsius 
+        if abs(last_temp - nose_temperature) < 0.4 and not None: 
+            print("Death detected!")
+            if not alarm_on:
+                play_alert_sound()  # Play alert sound
+                alarm_on = True
+            else:
+                alarm_on = False
+        last_temp = nose_temperature 
+    
     else: 
         continue 
 
