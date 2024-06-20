@@ -16,7 +16,7 @@ def liveTestCapThermo():
     # create variables for temp detection later
     frame_count = 0
     avg_bgr = None
-    buffer_size = 10
+    buffer_size = 90
     color_buffer = []
 
     # while true, read thermal cam footage
@@ -67,7 +67,7 @@ def liveTestCapThermo():
         if key == ord("q"):
             break
 
-    img.release()
+    # img.release()
     cv2.destroyAllWindows()
 
 
