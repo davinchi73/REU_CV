@@ -4,7 +4,6 @@ import pytesseract
 import re
 import winsound  # Import the winsound module for playing alert sound
 
-
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 # face and nose detection xml
 face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
@@ -16,6 +15,7 @@ thermal_cam = cv2.VideoCapture(0)  # Thermal camera
 
 frame_counter = 0
 last_temp = 0
+alarm_on = False
 
 #alert sound function when breathing temperature does not change 
 def play_alert_sound():
@@ -108,27 +108,16 @@ while True:
                 cv2.putText(regular_frame, f'{nose_temperature:.2f} °C', (nose_center_x, nose_center_y - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
                 
-        # If no faces detected, use last known face box if available to draw
-        if last_nose_box is not None:
-            (x, y, w, h) = last_nose_box
-            cv2.rectangle(thermal_frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
-            cv2.rectangle(regular_frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
-
-            cv2.putText(thermal_frame, "Nose (Last Known)", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-            cv2.putText(regular_frame, "Nose (Last Known)", (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-
         #detecting if the change in temeperature is less than 0.4 celsius 
-        if abs(last_temp - nose_temperature) < 0.4 and not None: 
-            print("Death detected!")
-            if not alarm_on:
-                play_alert_sound()  # Play alert sound
-                alarm_on = True
-            else:
-                alarm_on = False
-        last_temp = nose_temperature 
-    
-    else: 
-        continue 
+        if nose_temperature is not None and last_temp is not None:
+            if abs(last_temp - nose_temperature) < 0.4: 
+                print("Death detected!")
+                if not alarm_on:
+                    play_alert_sound()  # Play alert sound
+                    alarm_on = True
+                else:
+                    alarm_on = False
+            last_temp = nose_temperature 
 
     # show the frames of the cameras
     cv2.imshow('Regular Camera', regular_frame)
