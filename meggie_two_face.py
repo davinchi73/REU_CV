@@ -24,6 +24,8 @@ class Person:
         self.temperatures = []
         self.last_detected = time.time()  # Initialize last detected time
         self.alarm_on = False
+        self.alarm_start_time = None  # Add this line
+
 
     def update_bbox(self, bbox):
         self.bbox = bbox
@@ -114,6 +116,7 @@ while True:
 
         # Detecting if the change in temperature is less than 0.4 Celsius for any person
         for person in persons:
+            print(person.id)
             last_temp = person.get_last_temperature()
             if last_temp is not None and nose_temperatures:
                 for temp in nose_temperatures:
@@ -122,13 +125,20 @@ while True:
                         if not person.alarm_on:
                             play_alert_sound()  # Play alert sound
                             person.alarm_on = True
+                            person.alarm_start_time = time.time()  # Add this line
+
                     else:
                         person.alarm_on = False
 
-    # Draw flashing circles if alarm is on
+    # Draw flashing circles if alarm is on for person class
     for person in persons:
         flash_counter += 1
         if person.alarm_on:
+            #if the alarm has been on for 10 seconds stop the flashing and set alarm to False
+            if person.alarm_start_time and (time.time() - person.alarm_start_time > 10):
+                person.alarm_on = False  # Turn off alarm after 10 seconds
+                person.alarm_start_time = None
+                continue
             x, y, w, h = person.bbox
             # Alternate circle color between red and green
             color = (0, 0, 255) if flash_counter % 20 < 10 else (0, 255, 0)
@@ -136,7 +146,7 @@ while True:
     
     #delete person from the persons list if they haven't been detected in 10 seconds 
     persons = [person for person in persons if current_time - person.last_detected <= 10]
-    print(persons)
+    
 
     # Show the frames of the cameras
     cv2.imshow('Regular Camera', regular_frame)
