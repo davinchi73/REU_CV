@@ -15,7 +15,6 @@ regular_cam = cv2.VideoCapture(1)  # Regular camera
 thermal_cam = cv2.VideoCapture(0)  # Thermal camera
 
 last_extraction_time = time.time()
-frame_counter = 0
 flash_counter = 0  # Counter for flashing effect
 
 class Person:
@@ -62,7 +61,6 @@ def get_person_id(bbox):
 # While there is an active video frame
 while True:
     current_time = time.time()
-    frame_counter += 1
     nose_temperatures = []
     # Capture frame-by-frame from both cameras
     ret1, regular_frame = regular_cam.read()
@@ -136,6 +134,9 @@ while True:
             color = (0, 0, 255) if flash_counter % 20 < 10 else (0, 255, 0)
             cv2.circle(regular_frame, (x + w // 2, y + h // 2), max(w, h) // 2, color, 4)
     
+    #delete person from the persons list if they haven't been detected in 10 seconds 
+    persons = [person for person in persons if current_time - person.last_detected <= 10]
+    print(persons)
 
     # Show the frames of the cameras
     cv2.imshow('Regular Camera', regular_frame)
