@@ -15,7 +15,6 @@ thermalVid = cv2.VideoCapture(0)  # Adjust value if needed
 def play_alert_sound():
     winsound.Beep(1000, 500)  # Beep sound plays 
 
-
 def liveTestCapThermo():
     frame_count = 0
     last_temp = 0
