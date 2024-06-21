@@ -73,15 +73,6 @@ while True:
                 cv2.putText(regular_frame, f'{nose_temperature:.2f} °C', (nose_center_x, nose_center_y - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
 
-        # If no faces detected, use last known nose box if available to draw
-        if last_nose_box is not None:
-            (nx, ny, nw, nh) = last_nose_box
-            cv2.rectangle(thermal_frame, (nx, ny), (nx + nw, ny + nh), (255, 0, 0), 2)
-            cv2.rectangle(regular_frame, (nx, ny), (nx + nw, ny + nh), (255, 0, 0), 2)
-
-            cv2.putText(thermal_frame, "Nose (Last Known)", (nx, ny - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-            cv2.putText(regular_frame, "Nose (Last Known)", (nx, ny - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-
         # detecting if the change in temperature is less than 0.4 Celsius
         if nose_temperature is not None and last_temp is not None:
             if abs(last_temp - nose_temperature) < 0.4:
