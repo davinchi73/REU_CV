@@ -10,7 +10,7 @@ mp_face_mesh = mp.solutions.face_mesh
 face_detection = mp_face_detection.FaceDetection(min_detection_confidence=0.5)
 face_mesh = mp_face_mesh.FaceMesh(static_image_mode=False, max_num_faces=1, min_detection_confidence=0.5)
 
-# video for both cameras
+# Video for both cameras
 regular_cam = cv2.VideoCapture(1)  # Regular camera
 thermal_cam = cv2.VideoCapture(0)  # Thermal camera
 
@@ -26,6 +26,7 @@ class Person:
         self.alarm_on = False
         self.alarm_start_time = None  # Add this line
         self.previous_avg_temp = None
+        self.death_detected_time = None
 
     def update_bbox(self, bbox):
         self.bbox = bbox
@@ -45,8 +46,11 @@ class Person:
         current_avg_temp = self.get_average_temperature()
         if current_avg_temp is not None and self.previous_avg_temp is not None:
             if abs(current_avg_temp - self.previous_avg_temp) <= 0.2:
+                if self.death_detected_time is None:
+                    self.death_detected_time = time.time()
                 return True
         self.previous_avg_temp = current_avg_temp
+        self.death_detected_time = None
         return False
 
     def get_last_temperature(self):
@@ -70,10 +74,7 @@ def get_person_id(bbox):
         px, py, pw, ph = person.bbox
         if abs(x - px) < 75 and abs(y - py) < 75:
             return person.id
-    person = Person(next_person_id, bbox)
-    persons.append(person)
-    next_person_id += 1
-    return person.id
+    return None
 
 # While there is an active video frame
 while True:
@@ -101,6 +102,10 @@ while True:
                 ih, iw, _ = rgb_frame.shape
                 x, y, w, h = int(bboxC.xmin * iw), int(bboxC.ymin * ih), int(bboxC.width * iw), int(bboxC.height * ih)
                 person_id = get_person_id((x, y, w, h))
+                if person_id is None:
+                    person_id = next_person_id
+                    persons.append(Person(person_id, (x, y, w, h)))
+                    next_person_id += 1
                 person = [p for p in persons if p.id == person_id][0]
                 person.update_bbox((x, y, w, h))
 
@@ -125,8 +130,6 @@ while True:
                         nose_temperature = pixel_to_temperature(nose_temperature_pixel_value, min_temp=17.2, max_temp=33.4)
 
                         # Get person ID and update their temperature
-                        person_id = get_person_id((x, y, w, h))
-                        person = next(person for person in persons if person.id == person_id)
                         person.add_temperature(nose_temperature)
                         print(f'Temperature at nose for person {person_id}: {nose_temperature:.2f} °C')
                         cv2.putText(regular_frame, f'{nose_temperature:.2f} °C', (nose_center_x, nose_center_y - 10),
@@ -144,21 +147,15 @@ while True:
                 person.alarm_on = False
 
     # Draw flashing circles if alarm is on for person class
+    flash_counter += 1
     for person in persons:
-        flash_counter += 1
-        if person.alarm_on:
-            #if the alarm has been on for 10 seconds stop the flashing and set alarm to False
-            if person.alarm_start_time and (time.time() - person.alarm_start_time > 10):
-                person.alarm_on = False  # Turn off alarm after 10 seconds
-                person.alarm_start_time = None
-                continue
+        if person.death_detected_time and (time.time() - person.death_detected_time <= 30):
             x, y, w, h = person.bbox
-            # Alternate circle color between red and green
             color = (0, 0, 255) if flash_counter % 20 < 10 else (0, 255, 0)
             cv2.circle(regular_frame, (x + w // 2, y + h // 2), max(w, h) // 2, color, 4)
     
-    #delete person from the persons list if they haven't been detected in 10 seconds 
-    persons = [person for person in persons if current_time - person.last_detected <= 10]
+    # Delete person from the persons list if they haven't been detected in 10 seconds 
+    persons = [person for person in persons if current_time - person.last_detected <= 5]
 
     # Show the frames of the cameras
     cv2.imshow('Regular Camera', regular_frame)
