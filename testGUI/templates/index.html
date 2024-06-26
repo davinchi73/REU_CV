@@ -4,37 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Thermal Camera Feed</title>
-    <style>
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #f3f4f6;
-            margin: 0;
-        }
-        .video-container {
-            position: relative;
-        }
-        .video-container img {
-            display: block;
-            max-width: 100%;
-            height: auto;
-            border: 2px solid #000;
-        }
-        .overlay {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.5);
-            color: #fff;
-            padding: 10px;
-            border-radius: 5px;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+    <header>
+        <h1>Breathing Detection Interface</h1>
+    </header>
     <div class="video-container">
+        <div class="overlay">Thermal Camera Feed</div>
         <img src="{{ url_for('video_feed') }}" alt="Video Feed">
     </div>
 </body>

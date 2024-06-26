@@ -67,7 +67,7 @@ def get_person_id(bbox):
     return None
 
 
-
+#this is where the generate frames function used to be 
 while True:
     current_time = time.time()
     ret1, regular_frame = regular_cam.read()
