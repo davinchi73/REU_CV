@@ -8,7 +8,7 @@ isBlinking = False  # Global variable to hold the blinking state
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index1.html')
 
 def generate_face_grid():
     cap = cv2.VideoCapture(0)
