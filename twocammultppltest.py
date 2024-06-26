@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import mediapipe as mp
 import pytesseract
 import re
 import winsound  # Import the winsound module for playing alert sound
