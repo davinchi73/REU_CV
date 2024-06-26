@@ -86,7 +86,7 @@ while True:
         break
 
     # Only extract the temperature every 3 seconds
-    if current_time - last_extraction_time >= 3:
+    if current_time - last_extraction_time >= 2:
         last_extraction_time = current_time  # Reset the extraction timer for the person instance
 
         # Convert the regular frame to grayscale and detect faces

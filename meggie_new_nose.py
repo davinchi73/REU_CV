@@ -1,11 +1,8 @@
-from flask import Flask, render_template, Response
 import cv2
 import mediapipe as mp
 import numpy as np
 import winsound
 import time
-
-app = Flask(__name__)
 
 mp_face_detection = mp.solutions.face_detection
 mp_face_mesh = mp.solutions.face_mesh
@@ -69,89 +66,86 @@ def get_person_id(bbox):
             return person.id
     return None
 
-def generate_frames():
-    global last_extraction_time, flash_counter, persons, next_person_id
-    while True:
-        current_time = time.time()
-        ret1, regular_frame = regular_cam.read()
-        ret2, thermal_frame = thermal_cam.read()
 
-        if not ret1 or not ret2:
-            break
 
-        if current_time - last_extraction_time >= 3:
-            last_extraction_time = current_time
+while True:
+    current_time = time.time()
+    ret1, regular_frame = regular_cam.read()
+    ret2, thermal_frame = thermal_cam.read()
 
-            rgb_frame = cv2.cvtColor(regular_frame, cv2.COLOR_BGR2RGB)
-            results = face_detection.process(rgb_frame)
+    if not ret1 or not ret2:
+        break
 
-            if results.detections:
-                for detection in results.detections:
-                    bboxC = detection.location_data.relative_bounding_box
-                    ih, iw, _ = rgb_frame.shape
-                    x, y, w, h = int(bboxC.xmin * iw), int(bboxC.ymin * ih), int(bboxC.width * iw), int(bboxC.height * ih)
-                    person_id = get_person_id((x, y, w, h))
-                    if person_id is None:
-                        person_id = next_person_id
-                        persons.append(Person(person_id, (x, y, w, h)))
-                        next_person_id += 1
-                    person = [p for p in persons if p.id == person_id][0]
-                    person.update_bbox((x, y, w, h))
+    if current_time - last_extraction_time >= 3:
+        last_extraction_time = current_time
 
-                    face_results = face_mesh.process(rgb_frame)
-                    if face_results.multi_face_landmarks:
-                        for face_landmarks in face_results.multi_face_landmarks:
-                            nose_tip = face_landmarks.landmark[1]
-                            nose_center_x = int(nose_tip.x * iw)
-                            nose_center_y = int(nose_tip.y * ih)
+        rgb_frame = cv2.cvtColor(regular_frame, cv2.COLOR_BGR2RGB)
+        results = face_detection.process(rgb_frame)
 
-                            cv2.rectangle(regular_frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
-                            cv2.circle(regular_frame, (nose_center_x, nose_center_y), 5, (0, 0, 255), -1)
+        if results.detections:
+            for detection in results.detections:
+                bboxC = detection.location_data.relative_bounding_box
+                ih, iw, _ = rgb_frame.shape
+                x, y, w, h = int(bboxC.xmin * iw), int(bboxC.ymin * ih), int(bboxC.width * iw), int(bboxC.height * ih)
+                person_id = get_person_id((x, y, w, h))
+                if person_id is None:
+                    person_id = next_person_id
+                    persons.append(Person(person_id, (x, y, w, h)))
+                    next_person_id += 1
+                person = [p for p in persons if p.id == person_id][0]
+                person.update_bbox((x, y, w, h))
 
-                            if len(thermal_frame.shape) == 3 and thermal_frame.shape[2] == 3:
-                                thermal_frame_gray = cv2.cvtColor(thermal_frame, cv2.COLOR_BGR2GRAY)
-                            else:
-                                thermal_frame_gray = thermal_frame
+                face_results = face_mesh.process(rgb_frame)
+                if face_results.multi_face_landmarks:
+                    for face_landmarks in face_results.multi_face_landmarks:
+                        nose_tip = face_landmarks.landmark[1]
+                        nose_center_x = int(nose_tip.x * iw)
+                        nose_center_y = int(nose_tip.y * ih)
 
-                            nose_temperature_pixel_value = thermal_frame_gray[nose_center_y, nose_center_x]
-                            nose_temperature = pixel_to_temperature(nose_temperature_pixel_value, min_temp=17.2, max_temp=33.4)
+                        cv2.rectangle(regular_frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
+                        cv2.circle(regular_frame, (nose_center_x, nose_center_y), 5, (0, 0, 255), -1)
 
-                            person.add_temperature(nose_temperature)
-                            print(f'Temperature at nose for person {person_id}: {nose_temperature:.2f} °C')
-                            cv2.putText(regular_frame, f'{nose_temperature:.2f} °C', (nose_center_x, nose_center_y - 10),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+                        if len(thermal_frame.shape) == 3 and thermal_frame.shape[2] == 3:
+                            thermal_frame_gray = cv2.cvtColor(thermal_frame, cv2.COLOR_BGR2GRAY)
+                        else:
+                            thermal_frame_gray = thermal_frame
 
-            for person in persons:
-                if person.check_death():
-                    print(f"Death detected for person {person.id}!")
-                    if not person.alarm_on:
-                        winsound.Beep(1000, 500)
-                        person.alarm_on = True
-                        person.alarm_start_time = time.time()
-                else:
-                    person.alarm_on = False
+                        nose_temperature_pixel_value = thermal_frame_gray[nose_center_y, nose_center_x]
+                        nose_temperature = pixel_to_temperature(nose_temperature_pixel_value, min_temp=17.2, max_temp=33.4)
 
-        flash_counter += 1
+                        person.add_temperature(nose_temperature)
+                        print(f'Temperature at nose for person {person_id}: {nose_temperature:.2f} °C')
+                        cv2.putText(regular_frame, f'{nose_temperature:.2f} °C', (nose_center_x, nose_center_y - 10),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+
         for person in persons:
-            if person.death_detected_time and (time.time() - person.death_detected_time <= 30):
-                x, y, w, h = person.bbox
-                color = (0, 0, 255) if flash_counter % 20 < 10 else (0, 255, 0)
-                cv2.circle(regular_frame, (x + w // 2, y + h // 2), max(w, h) // 2, color, 4)
+            if person.check_death():
+                print(f"Death detected for person {person.id}!")
+                if not person.alarm_on:
+                    winsound.Beep(1000, 500)
+                    person.alarm_on = True
+                    person.alarm_start_time = time.time()
+            else:
+                person.alarm_on = False
 
-        persons = [person for person in persons if current_time - person.last_detected <= 10]
+    flash_counter += 1
+    for person in persons:
+        if person.death_detected_time and (time.time() - person.death_detected_time <= 30):
+            x, y, w, h = person.bbox
+            color = (0, 0, 255) if flash_counter % 20 < 10 else (0, 255, 0)
+            cv2.circle(regular_frame, (x + w // 2, y + h // 2), max(w, h) // 2, color, 4)
 
-        ret, buffer = cv2.imencode('.jpg', regular_frame)
-        frame = buffer.tobytes()
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+    persons = [person for person in persons if current_time - person.last_detected <= 10]
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+    # Show the frames of the cameras
+    cv2.imshow('Regular Camera', regular_frame)
+    cv2.imshow('Thermal Camera', thermal_frame)
 
-@app.route('/video_feed')
-def video_feed():
-    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    # Break the loop on 'q' key press
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
 
-if __name__ == '__main__':
-    app.run(debug=True)
+# Release the video capture objects and close windows
+regular_cam.release()
+thermal_cam.release()
+cv2.destroyAllWindows()
