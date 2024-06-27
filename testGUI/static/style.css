@@ -6,32 +6,34 @@ body {
     justify-content: center;
     align-items: center;
     height: 100vh;
-    background: linear-gradient(to bottom right, #ffe0f0, #ffccff);
+    background: linear-gradient(to bottom right, #87CEEB, #ffffff);
     margin: 0;
     font-family: 'Baloo 2', cursive;
 }
 
 header {
-    background: #ff69b4;
+    background: #005bac;
     width: 100%;
     padding: 20px 0;
     text-align: center;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-bottom: 5px solid #ffcc00;
 }
 
 header h1 {
-    color: #fff;
+    color: #ffcc00;
     margin: 0;
     font-size: 2.5em;
+    text-shadow: 2px 2px 4px #000000;
 }
 
 .video-container {
     position: relative;
-    border: 5px solid #ff69b4;
+    border: 5px solid #005bac;
     border-radius: 15px;
     overflow: hidden;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    background-color: #fff;
+    background-color: #ffffff;
     padding: 10px;
 }
 
@@ -47,27 +49,27 @@ header h1 {
     top: 10px;
     left: 10px;
     background: rgba(0, 0, 0, 0.5);
-    color: #fff;
+    color: #ffffff;
     padding: 10px;
     border-radius: 5px;
     font-size: 1.2em;
 }
 
 .overlay::before {
-    content: '🌈';
+    content: '🚂';
     margin-right: 10px;
 }
 
 header::before, .overlay::after {
-    content: '🦄';
+    content: '🚃';
     margin-left: 10px;
 }
 
 header::before, .overlay::before {
-    animation: rainbow 3s infinite;
+    animation: puff 3s infinite;
 }
 
-@keyframes rainbow {
+@keyframes puff {
     0% { color: #ff0000; }
     15% { color: #ff7f00; }
     30% { color: #ffff00; }
@@ -76,4 +78,36 @@ header::before, .overlay::before {
     75% { color: #4b0082; }
     90% { color: #8b00ff; }
     100% { color: #ff0000; }
+}
+
+button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    background-color: #005bac;
+    color: #ffcc00;
+    border: 2px solid #ffcc00;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s, transform 0.3s;
+}
+
+button:hover {
+    background-color: #004080;
+    transform: scale(1.05);
+}
+
+.blinking-border {
+    animation: blink 1s infinite alternate;
+}
+
+@keyframes blink {
+    0% { border-color: red; }
+    100% { border-color: white; }
+}
+
+body.blinking-border {
+    border: 10px solid;
+    border-color: red;
 }

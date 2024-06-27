@@ -77,6 +77,7 @@ def generate_frames():
         ret2, thermal_frame = thermal_cam.read()
 
         if not ret1 or not ret2:
+            print("could not grab frames")
             break
 
         if current_time - last_extraction_time >= 3:

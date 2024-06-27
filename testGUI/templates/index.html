@@ -11,8 +11,10 @@
         <h1>Breathing Detection Interface</h1>
     </header>
     <div class="video-container">
-        <div class="overlay">Thermal Camera Feed</div>
-        <img src="{{ url_for('video_feed') }}" alt="Video Feed">
+        <div class="header">Thermal Camera Feed</div>
+        <img src="{{ url_for('video_feed') }}" alt="Video Feed" id="video-feed">
     </div>
+    <button id="blink-button">Toggle Blinking Border</button>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
