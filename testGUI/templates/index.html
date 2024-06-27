@@ -2,39 +2,17 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Live Video Feed</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thermal Camera Feed</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div>
-        <label for="functionSelect">Choose a function:</label>
-        <select id="functionSelect" onchange="switchFunction()">
-            <option value="grid">Face Detection Grid</option>
-            <option value="blink">Face Blink Detection</option>
-        </select>
+    <header>
+        <h1>Breathing Detection Interface</h1>
+    </header>
+    <div class="video-container">
+        <div class="overlay">Thermal Camera Feed</div>
+        <img src="{{ url_for('video_feed') }}" alt="Video Feed">
     </div>
-    <div>
-        <button onclick="toggleBlinking()">Toggle Blinking</button>
-    </div>
-    <div class="container">
-        <img class="video" id="videoFeed" src="{{ url_for('video_feed', function='grid') }}" />
-        <div class="face-grid" id="faceGrid">
-            <!-- Faces will be shown here -->
-        </div>
-    </div>
-
-    <script>
-        function switchFunction() {
-            var functionSelect = document.getElementById('functionSelect').value;
-            var videoFeed = document.getElementById('videoFeed');
-            videoFeed.src = '/video_feed?function=' + functionSelect;
-        }
-
-        function toggleBlinking() {
-            var videoFeed = document.getElementById('videoFeed').src;
-            videoFeed += "&toggleBlinking=true";
-            document.getElementById('videoFeed').src = videoFeed;
-        }
-    </script>
 </body>
 </html>
