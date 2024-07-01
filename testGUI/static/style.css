@@ -1,96 +1,113 @@
-/* Styles for the body and general layout */
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500&display=swap');
+
 body {
-    font-family: 'Poppins', sans-serif;
-    background: linear-gradient(to right, #ff758c, #ff7eb3);
-    color: #fff;
-    text-align: center;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     height: 100vh;
+    background: linear-gradient(to bottom right, #87CEEB, #ffffff);
     margin: 0;
-    padding: 0;
+    font-family: 'Baloo 2', cursive;
 }
 
-/* Container for the content */
-.container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: rgba(0, 0, 0, 0.5);
-    padding: 20px;
-    border-radius: 20px;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-    max-width: 1000px;
-    width: 90%;
-}
-
-/* Styles for the video element */
-.video {
-    width: 640px;
-    height: 480px;
-    border: 5px solid #fff;
-    border-radius: 10px;
-    box-shadow: 0px 0px 20px rgba(255, 255, 255, 0.6);
-}
-
-/* Styles for the face grid */
-.face-grid {
-    width: 320px;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-around;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
-    padding: 10px;
-    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
-}
-
-/* Individual face box styles */
-.face {
+header {
+    background: #005bac;
     width: 100%;
-    height: 240px;
-    box-sizing: border-box;
-    padding: 5px;
-    border: 2px solid #fff;
+    padding: 20px 0;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-bottom: 5px solid #ffcc00;
+}
+
+header h1 {
+    color: #ffcc00;
+    margin: 0;
+    font-size: 2.5em;
+    text-shadow: 2px 2px 4px #000000;
+}
+
+.video-container {
+    position: relative;
+    border: 5px solid #005bac;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    background-color: #ffffff;
+    padding: 10px;
+}
+
+.video-container img {
+    display: block;
+    max-width: 100%;
+    height: auto;
     border-radius: 10px;
-    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
 }
 
-/* Styles for the select and buttons */
-label, select, button {
-    margin: 20px;
-    padding: 10px 20px;
-    border: none;
+.overlay {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.5);
+    color: #ffffff;
+    padding: 10px;
     border-radius: 5px;
-    font-size: 16px;
-    color: #fff;
-    background: #ff7eb3;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    font-size: 1.2em;
+}
+
+.overlay::before {
+    content: '🚂';
+    margin-right: 10px;
+}
+
+header::before, .overlay::after {
+    content: '🚃';
+    margin-left: 10px;
+}
+
+header::before, .overlay::before {
+    animation: puff 3s infinite;
+}
+
+@keyframes puff {
+    0% { color: #ff0000; }
+    15% { color: #ff7f00; }
+    30% { color: #ffff00; }
+    45% { color: #00ff00; }
+    60% { color: #0000ff; }
+    75% { color: #4b0082; }
+    90% { color: #8b00ff; }
+    100% { color: #ff0000; }
+}
+
+button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    background-color: #005bac;
+    color: #ffcc00;
+    border: 2px solid #ffcc00;
+    border-radius: 5px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    font-size: 1em;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s, transform 0.3s;
 }
 
-/* Hover effect for buttons */
-button:hover, select:hover {
-    background: #ff758c;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+button:hover {
+    background-color: #004080;
+    transform: scale(1.05);
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .container {
-        flex-direction: column;
-        align-items: center;
-    }
+.blinking-border {
+    animation: blink 1s infinite alternate;
+}
 
-    .video, .face-grid {
-        width: 100%;
-        margin-bottom: 20px;
-    }
+@keyframes blink {
+    0% { border-color: red; }
+    100% { border-color: white; }
+}
 
-    .video {
-        height: auto;
-    }
+body.blinking-border {
+    border: 10px solid;
+    border-color: red;
 }

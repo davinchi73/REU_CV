@@ -13,7 +13,7 @@ face_detection = mp_face_detection.FaceDetection(min_detection_confidence=0.5)
 face_mesh = mp_face_mesh.FaceMesh(static_image_mode=False, max_num_faces=1, min_detection_confidence=0.5)
 
 regular_cam = cv2.VideoCapture(1)
-thermal_cam = cv2.VideoCapture(0)
+thermal_cam = cv2.VideoCapture(2)
 
 last_extraction_time = time.time()
 flash_counter = 0
@@ -71,12 +71,14 @@ def get_person_id(bbox):
 
 def generate_frames():
     global last_extraction_time, flash_counter, persons, next_person_id
+    zoom_factor = 2.0  # Change this value to adjust the zoom level
     while True:
         current_time = time.time()
         ret1, regular_frame = regular_cam.read()
         ret2, thermal_frame = thermal_cam.read()
 
         if not ret1 or not ret2:
+            print("could not grab frames")
             break
 
         if current_time - last_extraction_time >= 3:
@@ -139,6 +141,25 @@ def generate_frames():
                 cv2.circle(regular_frame, (x + w // 2, y + h // 2), max(w, h) // 2, color, 4)
 
         persons = [person for person in persons if current_time - person.last_detected <= 10]
+
+        # Zoom in on the detected face
+        if results.detections:
+            for detection in results.detections:
+                bboxC = detection.location_data.relative_bounding_box
+                ih, iw, _ = regular_frame.shape
+                x, y, w, h = int(bboxC.xmin * iw), int(bboxC.ymin * ih), int(bboxC.width * iw), int(bboxC.height * ih)
+
+                # Calculate new bounding box with zoom factor
+                cx, cy = x + w // 2, y + h // 2
+                new_w, new_h = int(w * zoom_factor), int(h * zoom_factor)
+                new_x, new_y = max(0, cx - new_w // 2), max(0, cy - new_h // 2)
+                new_w, new_h = min(new_w, iw - new_x), min(new_h, ih - new_y)
+
+                # Crop the region around the face with zoom factor
+                crop_frame = regular_frame[new_y:new_y + new_h, new_x:new_x + new_w]
+
+                # Resize the cropped frame to the original frame size
+                regular_frame = cv2.resize(crop_frame, (iw, ih))
 
         ret, buffer = cv2.imencode('.jpg', regular_frame)
         frame = buffer.tobytes()
