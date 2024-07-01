@@ -12,11 +12,18 @@ mp_face_mesh = mp.solutions.face_mesh
 face_detection = mp_face_detection.FaceDetection(min_detection_confidence=0.5)
 face_mesh = mp_face_mesh.FaceMesh(static_image_mode=False, max_num_faces=1, min_detection_confidence=0.5)
 
-regular_cam = cv2.VideoCapture(1)
-thermal_cam = cv2.VideoCapture(0)
+regular_cam = cv2.VideoCapture(0)
+thermal_cam = cv2.VideoCapture(1)
 
 last_extraction_time = time.time()
 flash_counter = 0
+
+zoom_factor = 2.5
+offset_y_inches = -0.8
+offset_x_inches = 1
+dpi = 30
+offset_y_pixels = int(offset_y_inches * dpi)
+offset_x_pixels = int(offset_x_inches * dpi)
 
 class Person:
     def __init__(self, id, bbox):
@@ -69,6 +76,28 @@ def get_person_id(bbox):
             return person.id
     return None
 
+def crop_above(frame, zoom_factor, offset_y_pixels, offset_x_pixels):
+    height, width = frame.shape[:2]
+    new_height, new_width = int(height / zoom_factor), int(width / zoom_factor)
+    
+    # Adjust the starting row to account for the vertical offset due to camera position
+    start_row = int((height - new_height) / 2) - offset_y_pixels
+    start_row = max(0, start_row)  # Ensure the start row is not negative
+    end_row = start_row + new_height
+    if end_row > height:
+        end_row = height
+        start_row = height - new_height
+
+    # Adjust the starting column to account for the horizontal offset
+    start_col = int((width - new_width) / 2) - offset_x_pixels
+    start_col = max(0, start_col)  # Ensure the start column is not negative
+    end_col = start_col + new_width
+    if end_col > width:
+        end_col = width
+        start_col = width - new_width
+
+    return frame[start_row:end_row, start_col:end_col]
+
 def generate_frames():
     global last_extraction_time, flash_counter, persons, next_person_id
     while True:
@@ -79,10 +108,17 @@ def generate_frames():
         if not ret1 or not ret2:
             break
 
+        # Crop the regular camera frame with vertical and horizontal offsets
+        zoomed_frame = crop_above(regular_frame, zoom_factor, offset_y_pixels, offset_x_pixels)
+        
+        # Resize the cropped frame to match the thermal frame size
+        thermal_height, thermal_width = thermal_frame.shape[:2]
+        zoomed_frame_resized = cv2.resize(zoomed_frame, (thermal_width, thermal_height))
+
         if current_time - last_extraction_time >= 3:
             last_extraction_time = current_time
 
-            rgb_frame = cv2.cvtColor(regular_frame, cv2.COLOR_BGR2RGB)
+            rgb_frame = cv2.cvtColor(zoomed_frame_resized, cv2.COLOR_BGR2RGB)
             results = face_detection.process(rgb_frame)
 
             if results.detections:
@@ -105,8 +141,8 @@ def generate_frames():
                             nose_center_x = int(nose_tip.x * iw)
                             nose_center_y = int(nose_tip.y * ih)
 
-                            cv2.rectangle(regular_frame, (x, y), (x + w, y + h), (255, 0, 0), 2)
-                            cv2.circle(regular_frame, (nose_center_x, nose_center_y), 5, (0, 0, 255), -1)
+                            cv2.rectangle(zoomed_frame_resized, (x, y), (x + w, y + h), (255, 0, 0), 2)
+                            cv2.circle(zoomed_frame_resized, (nose_center_x, nose_center_y), 5, (0, 0, 255), -1)
 
                             if len(thermal_frame.shape) == 3 and thermal_frame.shape[2] == 3:
                                 thermal_frame_gray = cv2.cvtColor(thermal_frame, cv2.COLOR_BGR2GRAY)
@@ -118,7 +154,7 @@ def generate_frames():
 
                             person.add_temperature(nose_temperature)
                             print(f'Temperature at nose for person {person_id}: {nose_temperature:.2f} °C')
-                            cv2.putText(regular_frame, f'{nose_temperature:.2f} °C', (nose_center_x, nose_center_y - 10),
+                            cv2.putText(zoomed_frame_resized, f'{nose_temperature:.2f} °C', (nose_center_x, nose_center_y - 10),
                                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
 
             for person in persons:
@@ -136,11 +172,11 @@ def generate_frames():
             if person.death_detected_time and (time.time() - person.death_detected_time <= 30):
                 x, y, w, h = person.bbox
                 color = (0, 0, 255) if flash_counter % 20 < 10 else (0, 255, 0)
-                cv2.circle(regular_frame, (x + w // 2, y + h // 2), max(w, h) // 2, color, 4)
+                cv2.circle(zoomed_frame_resized, (x + w // 2, y + h // 2), max(w, h) // 2, color, 4)
 
         persons = [person for person in persons if current_time - person.last_detected <= 10]
 
-        ret, buffer = cv2.imencode('.jpg', regular_frame)
+        ret, buffer = cv2.imencode('.jpg', zoomed_frame_resized)
         frame = buffer.tobytes()
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
